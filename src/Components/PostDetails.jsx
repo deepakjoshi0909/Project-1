@@ -1,95 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ThumbUpIcon } from '@heroicons/react/solid'; // Import the like icon from Heroicons
-import fitnessImage from '../Data/fitness.jpg';
-import education from '../Data/education.jpg';
-
-const posts = [
-  {
-    id: 1,
-    title: 'Post Title 1',
-    image: fitnessImage,
-    summary: 'This is a summary of the post content.',
-    content: `
-      This is the detailed content of post 1. 
-      Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-      Vivamus aliquet elit ac nisl. Suspendisse varius enim in eros elementum tristique.
-      ## Key Highlights
-      - Discusses cutting-edge trends in technology.
-      - Practical advice for tech enthusiasts.
-      - Tips to boost productivity with gadgets.
-    `,
-    author: 'John Doe',
-    category: 'Technology',
-    tags: ['AI', 'Innovation', 'Programming'],
-    publishedDate: 'December 15, 2024',
-    readingTime: '5 min',
-  },
-  {
-    id: 2,
-    title: 'Post Title 2',
-    image: education,
-    summary: 'This is a summary of the post content.',
-    content: `
-      This is the detailed content of post 2. 
-      Aenean commodo ligula eget dolor. Etiam ultricies nisi vel augue.
-      ## Key Takeaways
-      - Importance of a healthy lifestyle.
-      - Managing stress through mindful activities.
-      - Fitness routines for busy schedules.
-    `,
-    author: 'Jane Smith',
-    category: 'Health',
-    tags: ['Wellness', 'Nutrition', 'Fitness'],
-    publishedDate: 'December 10, 2024',
-    readingTime: '4 min',
-  },
-  {
-    id: 3,
-    title: 'Post Title 3',
-    image: 'https://via.placeholder.com/600x300',
-    summary: 'This is a summary of the post content.',
-    content: `
-      This is the detailed content of post 3. 
-      Etiam gravida velit vitae enim gravida, sit amet lacinia velit vulputate.
-      ## What You'll Learn
-      - Balancing work and personal life.
-      - Importance of setting achievable goals.
-      - Tips to lead a fulfilling lifestyle.
-    `,
-    author: 'Alice Johnson',
-    category: 'Lifestyle',
-    tags: ['Happiness', 'Work-Life', 'Motivation'],
-    publishedDate: 'November 25, 2024',
-    readingTime: '6 min',
-  },
-];
+import axios from 'axios';
+import { ThumbUpIcon } from '@heroicons/react/solid';
 
 const PostDetails = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
-
-  const post = posts.find((p) => p.id === parseInt(postId));
+  const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [likes, setLikes] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  if (!post) {
-    return <div className="text-center text-xl text-red-600">Post not found</div>;
-  }
+  useEffect(() => {
+    // Fetch post details
+    axios
+      .get(`http://localhost:5000/api/posts/${postId}`)
+      .then((response) => {
+        setPost(response.data);
+        setLikes(response.data.likes || 0); // Handle missing likes field
+        setLoading(false);
+      })
+      .catch(() => {
+        setError('There was an error fetching the post!');
+        setLoading(false);
+      });
+
+    // Fetch comments
+    axios
+      .get(`http://localhost:5000/api/posts/${postId}/comments`)
+      .then((response) => setComments(response.data))
+      .catch((error) => console.error('Error fetching comments:', error));
+  }, [postId]);
 
   const handleCommentSubmit = () => {
     if (commentText.trim()) {
-      setComments([...comments, commentText]);
-      setCommentText('');
+      axios
+        .post(`http://localhost:5000/api/posts/${postId}/comments`, { text: commentText })
+        .then((response) => {
+          setComments([...comments, response.data]); // Add new comment to state
+          setCommentText('');
+        })
+        .catch((error) => console.error('Error submitting comment:', error));
     }
   };
 
   const handleLike = () => {
-    setLikes(likes + 1);
+    setLikes(likes + 1); // Optimistic update
+    axios
+      .post(`http://localhost:5000/api/posts/${postId}/like`)
+      .catch((error) => console.error('Error updating likes:', error));
   };
 
-  const relatedPosts = posts.filter((p) => p.category === post.category && p.id !== post.id);
+  if (loading) {
+    return <div className="text-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-xl text-red-600">{error}</div>;
+  }
+
+  if (!post) {
+    return <div className="text-center text-xl text-red-600">Post not found</div>;
+  }
 
   return (
     <div className="bg-gray-100 min-h-screen">
@@ -122,20 +96,25 @@ const PostDetails = () => {
 
           {/* Metadata Section */}
           <div className="text-sm text-gray-500 mb-6">
-            <span>Author: {post.author}</span> | <span>Category: {post.category}</span>
+          <span>Author: {post.author?.name || 'Unknown'}</span>
+          | <span>Category: {post.category}</span>
           </div>
 
           {/* Tags */}
           <div className="flex items-center space-x-3 mb-6">
             <h4 className="font-semibold">Tags:</h4>
-            {post.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm"
-              >
-                {tag}
-              </span>
-            ))}
+            {Array.isArray(post.tags) && post.tags.length > 0 ? (
+              post.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm"
+                >
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <span>No tags available</span>
+            )}
           </div>
 
           {/* Like Button */}
@@ -148,25 +127,6 @@ const PostDetails = () => {
               <span>Like {likes}</span>
             </button>
           </div>
-
-          {/* Related Posts Section */}
-          {relatedPosts.length > 0 && (
-            <div className="mt-10">
-              <h3 className="text-2xl font-semibold mb-4">Related Posts</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {relatedPosts.map((relatedPost) => (
-                  <div
-                    key={relatedPost.id}
-                    className="bg-gray-200 p-4 rounded-lg shadow cursor-pointer hover:bg-gray-300 transition"
-                    onClick={() => navigate(`/post/${relatedPost.id}`)}
-                  >
-                    <h4 className="font-bold text-lg">{relatedPost.title}</h4>
-                    <p className="text-sm text-gray-600">{relatedPost.summary}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Comment Section */}
           <div className="border-t pt-4 mt-8">
@@ -188,7 +148,7 @@ const PostDetails = () => {
             <ul className="space-y-2">
               {comments.map((comment, index) => (
                 <li key={index} className="bg-gray-200 p-3 rounded-lg">
-                  {comment}
+                  {comment.text}
                 </li>
               ))}
             </ul>

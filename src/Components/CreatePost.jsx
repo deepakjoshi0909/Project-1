@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
-import { FaTags, FaEdit } from 'react-icons/fa';
+import React, { useState } from "react";
+import { FaTags, FaEdit } from "react-icons/fa";
+import axios from "axios";
 
 const CreatePost = () => {
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   const [image, setImage] = useState(null);
-  const [tags, setTags] = useState('');
-  const [category, setCategory] = useState('Tech');
+  const [tags, setTags] = useState("");
+  const [category, setCategory] = useState("Tech");
+  const [error, setError] = useState(null); // For error handling
+  const [loading, setLoading] = useState(false); // To handle loading state
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -15,17 +18,75 @@ const CreatePost = () => {
     }
   };
 
-  const handleCreatePost = (e) => {
+  const handleCreatePost = async (e) => {
     e.preventDefault();
-    console.log('Post Created:', { title, content, image, tags, category });
+    setLoading(true);
+    setError(null); // Reset error message when submitting a new post
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("No token found, please log in");
+        setLoading(false);
+        return;
+      }
+
+      // Decode the token to extract user information (like userId)
+      const decodedToken = JSON.parse(atob(token.split('.')[1])); // Decode JWT token
+      const authorId = decodedToken.userId; // Assuming the userId is part of the token
+
+      const postData = {
+        title,
+        content,
+        tags,
+        category,
+        author: authorId, // Add the author to the post data
+      };
+
+      console.log("Posting data:", postData); // Debugging: Check what you're sending
+      console.log("Using token:", token); // Debugging: Check the token
+
+      const response = await axios.post(
+        "http://localhost:5000/api/posts/",
+        postData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Post Created:", response.data);
+      
+      // Reset fields after successful post creation
+      setTitle("");
+      setContent("");
+      setTags("");
+      setCategory("Tech");
+      setImage(null);
+
+      // Optionally, show a success message
+      alert("Post created successfully!");
+
+    } catch (err) {
+      setError("Error creating post");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 p-6 flex items-center justify-center">
-      <form onSubmit={handleCreatePost} className="bg-white p-8 rounded-lg shadow-xl w-full max-w-3xl transform transition duration-300 hover:scale-105">
+      <form
+        onSubmit={handleCreatePost}
+        className="bg-white p-8 rounded-lg shadow-xl w-full max-w-3xl transform transition duration-300 hover:scale-105"
+      >
         <h2 className="text-4xl font-extrabold text-center text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 mb-6">
           Create Your Post
         </h2>
+
+        {error && <p className="text-red-500 text-center">{error}</p>}
 
         {/* Post Title */}
         <div className="relative mb-6">
@@ -98,9 +159,12 @@ const CreatePost = () => {
         {/* Submit Button */}
         <button
           type="submit"
-          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-gradient-to-l transform transition duration-300 ease-in-out hover:scale-105"
+          className={`w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-gradient-to-l transform transition duration-300 ease-in-out hover:scale-105 ${
+            loading ? "opacity-50 cursor-not-allowed" : ""
+          }`}
+          disabled={loading}
         >
-          Create Post
+          {loading ? "Creating Post..." : "Create Post"}
         </button>
       </form>
     </div>

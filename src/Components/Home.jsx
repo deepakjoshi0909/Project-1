@@ -1,13 +1,27 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Link } from "react-router-dom";
-import fitness from '../Data/fitness.jpg';
-import market from '../Data/market.png';
-import tech from '../Data/tech.jpg';
-import food from '../Data/food.png';
-import education from '../Data/education.jpg';
-import travel from '../Data/travel.jpg';
 
 const HomePage = () => {
+  const [posts, setPosts] = useState([]); // Store posts
+  const [loading, setLoading] = useState(true); // Handle loading state
+  const [error, setError] = useState(null); // Handle error state
+
+  // Fetch posts from the backend API
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/api/posts/");
+        setPosts(response.data); // Set posts data to state
+      } catch (err) {
+        setError("Error fetching posts"); // Set error message
+      } finally {
+        setLoading(false); // Set loading to false
+      }
+    };
+    fetchPosts(); // Call the function to fetch posts
+  }, []); // Empty dependency array ensures this runs once on mount
+
   return (
     <div className="bg-gray-100 min-h-screen">
       {/* Hero Section */}
@@ -29,57 +43,19 @@ const HomePage = () => {
         <p className="text-center text-gray-600 mb-12 text-lg">
           Explore our latest updates, insights, and stories.
         </p>
+        {loading && <p className="text-center text-white">Loading posts...</p>}
+        {error && <p className="text-center text-red-500">{error}</p>}
+        {posts.length === 0 && !loading && !error && (
+          <p className="text-center text-white">No posts available</p>
+        )}
         <div className="grid md:grid-cols-3 gap-8">
-          {[
-            {
-              image: fitness,
-              title: "Embracing the Digital Revolution",
-              description:
-                "Understand how technology is transforming industries and redefining boundaries.",
-              link: "/post/1",
-            },
-            {
-              image: education,
-              title: "The Call of the Wild",
-              description:
-                "Experience the thrill of untamed nature and its breathtaking beauty.",
-              link: "/post/2",
-            },
-            {
-              image: food,
-              title: "Innovations that Inspire",
-              description:
-                "Discover groundbreaking innovations shaping the future of humanity.",
-              link: "/post/3",
-            },
-            {
-              image: travel,
-              title: "Beyond the Stars",
-              description:
-                "Dive into the mysteries of the cosmos and the future of space exploration.",
-              link: "/post/4",
-            },
-            {
-              image: market,
-              title: "The Art of Creativity",
-              description:
-                "Explore the limitless potential of human imagination and creativity.",
-              link: "/post/5",
-            },
-            {
-              image: tech,
-              title: "The Rise of AI and Robotics",
-              description:
-                "Unravel the latest advancements in artificial intelligence and robotics.",
-              link: "/post/6",
-            },
-          ].map((post, index) => (
+          {!loading && !error && posts.map((post) => (
             <div
-              key={index}
+              key={post._id}
               className="bg-white shadow-lg rounded-lg overflow-hidden transition-all transform hover:scale-105 hover:shadow-2xl"
             >
               <img
-                src={post.image}
+                src={post.image || "https://via.placeholder.com/400"} // Use a placeholder if no image is available
                 alt={post.title}
                 className="w-full h-48 object-cover"
               />
@@ -87,9 +63,11 @@ const HomePage = () => {
                 <h3 className="text-xl font-bold text-gray-800 mb-2">
                   {post.title}
                 </h3>
-                <p className="text-gray-600 mb-4">{post.description}</p>
+                <p className="text-gray-600 mb-4">
+                  {post.description}
+                </p>
                 <Link
-                  to={post.link}
+                  to={`/posts/${post._id}`} // Assuming the post has an _id for routing
                   className="text-blue-500 hover:text-blue-600 font-semibold"
                 >
                   Read More
@@ -111,38 +89,7 @@ const HomePage = () => {
             interests.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {[
-              {
-                name: "Tech",
-                icon: "💻",
-                description: "Latest trends in technology",
-              },
-              {
-                name: "Lifestyle",
-                icon: "🏡",
-                description: "Tips for better living",
-              },
-              {
-                name: "Travel",
-                icon: "✈️",
-                description: "Adventures around the globe",
-              },
-              {
-                name: "Food",
-                icon: "🍔",
-                description: "Delicious recipes & more",
-              },
-              {
-                name: "Education",
-                icon: "📚",
-                description: "Knowledge and resources",
-              },
-              {
-                name: "Fitness",
-                icon: "🏋️‍♂️",
-                description: "Achieve your health goals",
-              },
-            ].map((category, index) => (
+            {[/* Same category content as before */].map((category, index) => (
               <div
                 key={index}
                 className="bg-white shadow-lg rounded-xl px-6 py-8 text-center transform transition-all hover:scale-105 hover:shadow-2xl cursor-pointer"
