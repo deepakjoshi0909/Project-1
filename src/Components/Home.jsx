@@ -85,11 +85,14 @@ const HomePage = () => {
             Explore Categories
           </h2>
           <p className="text-center text-gray-600 mb-12 text-lg">
-            Dive into diverse topics and discover content tailored to your
-            interests.
+            Dive into diverse topics and discover content tailored to your interests.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {[/* Same category content as before */].map((category, index) => (
+            {[{ name: 'Tech', icon: '💻', description: 'Latest tech updates and innovations' },
+              { name: 'Health', icon: '💪', description: 'Insights into health and wellness' },
+              { name: 'Business', icon: '💼', description: 'Explore the business world and trends' },
+              { name: 'Travel', icon: '✈️', description: 'Discover travel destinations and tips' }
+            ].map((category, index) => (
               <div
                 key={index}
                 className="bg-white shadow-lg rounded-xl px-6 py-8 text-center transform transition-all hover:scale-105 hover:shadow-2xl cursor-pointer"
